@@ -1,0 +1,62 @@
+name: Make video
+
+on:
+  workflow_dispatch:
+    inputs:
+      row_id:
+        description: "Unique id for the video file"
+        required: true
+      hook:
+        description: "Opening line"
+        required: true
+      tip1:
+        description: "Tip 1"
+        required: true
+      tip2:
+        description: "Tip 2"
+        required: true
+      tip3:
+        description: "Tip 3"
+        required: true
+      cta:
+        description: "Call to action"
+        required: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: make-video
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg fonts-dejavu-core python3-pil
+
+      - name: Make the video
+        env:
+          ROW_ID: ${{ inputs.row_id }}
+          HOOK: ${{ inputs.hook }}
+          TIP1: ${{ inputs.tip1 }}
+          TIP2: ${{ inputs.tip2 }}
+          TIP3: ${{ inputs.tip3 }}
+          CTA: ${{ inputs.cta }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: /usr/bin/python3 make_video.py
+
+      - name: Save the video in the repo
+        env:
+          ROW_ID: ${{ inputs.row_id }}
+        run: |
+          git config user.name "gf-video-bot"
+          git config user.email "gf-video-bot@users.noreply.github.com"
+          git add videos/
+          git commit -m "Add video $ROW_ID"
+          git pull --rebase
+          git push
